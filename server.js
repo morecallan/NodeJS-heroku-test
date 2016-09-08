@@ -2,7 +2,11 @@
 
 const express = require('express')
 const bodyParser = require('body-parser')
+const chalk = require('chalk')
+const dateFormat = require('dateformat')
 
+//middleware function of the routes in routes/index.js
+const routes = require('./routes/');
 const app = express()
 
 // Get port from environment and store in Express.
@@ -19,25 +23,26 @@ if (process.env.NODE_ENV !== 'production') {
 app.locals.company = '🍕 Pizza de Scott'
 
 // middlewares
+app.use((req,res,next)=> {
+  console.log(`[${new Date()}] "${chalk.cyan(req.method)} ${chalk.cyan(req.url)}" "${req.headers[`user-agent`]}"`)
+  next()
+})
+
 app.use(express.static('public'))
 app.use(bodyParser.urlencoded({ extended: false }))
+app.use(routes)
 
-// routes
-app.get('/', (req, res) =>
-  res.render('index')
-)
 
-app.get('/about', (req, res) =>
-  res.render('about', { page: 'About' })
-)
+app.use((req,res,next)=> {
+  const err = new Error('Not found.')
+  err.status = 404;
+  res.render('404')
+  next(err)
+})
 
-app.get('/contact', (req, res) =>
-  res.render('contact', { page: 'Contact' })
-)
-
-app.post('/contact', (req, res) => {
-  console.log(req.body)
-  res.redirect('/')
+app.use((err,req,res,next)=> {
+  res.sendStatus(err.status || 500)
+  console.error(`[${new Date()}] "${chalk.red(req.method)} ${chalk.red(req.url)}" "Error: (${chalk.red(res.statusCode)}) ${chalk.red(res.statusMessage)}"`)
 })
 
 // Listen to requests on the provided port and log when available
